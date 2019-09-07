@@ -8,6 +8,7 @@ import edu.coursera.concurrent.boruvka.Component;
 import java.util.Queue;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A parallel implementation of Boruvka's algorithm to compute a Minimum
@@ -28,7 +29,46 @@ public final class ParBoruvka extends AbstractBoruvka<ParBoruvka.ParComponent> {
     @Override
     public void computeBoruvka(final Queue<ParComponent> nodesLoaded,
             final SolutionToBoruvka<ParComponent> solution) {
-        throw new UnsupportedOperationException();
+
+
+        ParComponent n;
+        while((n = nodesLoaded.poll()) != null) {
+            //if(n.isDead) continue;
+            if(!n.lock.tryLock()) {
+                continue;
+            }
+            if(n.isDead) {
+                n.lock.unlock();
+                continue;
+            }
+            final Edge<ParComponent> e = n.getMinEdge();
+            if(e == null) {
+                solution.setSolution(n);
+                break;
+            }
+            final ParComponent other = e.getOther(n);
+//            if(other.isDead) {
+//                n.lock.unlock();
+//                nodesLoaded.add(n);
+//                continue;
+//            }
+            if(!other.lock.tryLock()) {
+                n.lock.unlock();
+                nodesLoaded.add(n);
+                continue;
+            }
+            if(other.isDead) {
+                other.lock.unlock();
+                n.lock.unlock();
+                nodesLoaded.add(n);
+                continue;
+            }
+            other.isDead = true;
+            n.merge(other, e.weight());
+            n.lock.unlock();
+            other.lock.unlock();
+            nodesLoaded.add(n);
+        }
     }
 
     /**
@@ -37,6 +77,8 @@ public final class ParBoruvka extends AbstractBoruvka<ParBoruvka.ParComponent> {
      * result of collapsing edges to form a component from multiple nodes.
      */
     public static final class ParComponent extends Component<ParComponent> {
+
+        public final ReentrantLock lock = new ReentrantLock();
         /**
          *  A unique identifier for this component in the graph that contains
          *  it.
