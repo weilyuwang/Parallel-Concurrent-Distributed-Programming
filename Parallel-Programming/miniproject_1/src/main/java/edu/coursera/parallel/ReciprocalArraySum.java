@@ -157,10 +157,9 @@ public final class ReciprocalArraySum {
 
         int start = getChunkStartInclusive(0,1,input.length);
         int end = getChunkEndExclusive(0,1,input.length);
-        ReciprocalArraySumTask reciprocalArraySumTask = new ReciprocalArraySumTask(start,end,input);
-
-        ForkJoinPool.commonPool().invoke(reciprocalArraySumTask);
-        return reciprocalArraySumTask.getValue();
+        ReciprocalArraySumTask task = new ReciprocalArraySumTask(start,end,input);
+        ForkJoinPool.commonPool().invoke(task);
+        return task.getValue();
     }
 
     /**
@@ -177,14 +176,14 @@ public final class ReciprocalArraySum {
             final int numTasks) {
         double sum = 0;
 
-        ArrayList<ReciprocalArraySumTask> reciprocalArraySumTaskList = new ArrayList<>();
+        ArrayList<ReciprocalArraySumTask> taskList = new ArrayList<>();
         for(int i=0;i<numTasks;i++){
             int start = getChunkStartInclusive(i,numTasks,input.length);
             int end = getChunkEndExclusive(i,numTasks,input.length);
-            reciprocalArraySumTaskList.add(new ReciprocalArraySumTask(start,end,input));
+            taskList.add(new ReciprocalArraySumTask(start,end,input));
         }
-        ForkJoinTask.invokeAll(reciprocalArraySumTaskList);
-        for(ReciprocalArraySumTask task : reciprocalArraySumTaskList){
+        ForkJoinTask.invokeAll(taskList);
+        for(ReciprocalArraySumTask task : taskList){
             sum += task.getValue();
         }
         return sum;
