@@ -1,12 +1,8 @@
 package edu.coursera.distributed;
 
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.File;
 
 /**
  * A basic and very limited implementation of a file server that responds to GET
@@ -32,10 +28,10 @@ public final class FileServer {
          */
         while (true) {
 
-            // TODO Delete this once you start working on your solution.
-            throw new UnsupportedOperationException();
-
             // TODO 1) Use socket.accept to get a Socket object
+
+            Socket s = socket.accept();
+
 
             /*
              * TODO 2) Using Socket.getInputStream(), parse the received HTTP
@@ -46,6 +42,19 @@ public final class FileServer {
              *
              *     GET /path/to/file HTTP/1.1
              */
+
+            InputStream stream = s.getInputStream();
+            InputStreamReader reader = new InputStreamReader(stream);
+            BufferedReader bufferedReader = new BufferedReader(reader);
+
+            String line = bufferedReader.readLine();
+            assert line != null;
+            assert line.startsWith("GET");
+            final String path = line.split(" ")[1];
+
+            PCDPPath pcdpPath = new PCDPPath(path);
+            String fileContent = fs.readFile(pcdpPath);
+
 
             /*
              * TODO 3) Using the parsed path to the target file, construct an
@@ -67,6 +76,22 @@ public final class FileServer {
              *
              * Don't forget to close the output stream.
              */
+
+            OutputStream out = s.getOutputStream();
+            PrintWriter printWriter = new PrintWriter(out);
+
+            if(fileContent != null) {
+                printWriter.write("HTTP/1.0 200 OK\r\n");
+                printWriter.write("Server: FileServer\r\n");
+                printWriter.write("\r\n");
+                printWriter.write(fileContent + "\r\n");
+            } else {
+                printWriter.write("HTTP/1.0 404 Not Found\r\n");
+                printWriter.write("Server: FileServer\r\n");
+                printWriter.write("\r\n");
+            }
+
+            printWriter.close();
         }
     }
 }
